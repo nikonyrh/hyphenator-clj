@@ -44,10 +44,24 @@
      0 (:values word))))
 
 (defn hyphenate-word [hyphen word-str]
-  "Given a word, iterate over all patterns and accumulate the maximum vec value. Then add hyphens where the value is odd"
-  (let [match-patterns (fn [word] (reduce elem-max (:values word) (filter some? (map (partial match-pattern word) patterns))))
-        matches        (match-patterns (get-word word-str))]
-    (apply str (flatten (map #(if (odd? %1) [hyphen %2] %2) matches word-str)))))
+  "Given a word, iterate over all patterns and accumulate the maximum vec value.
+   Then add hyphens where the value is odd and strings are long enough."
+  (let [match-patterns (fn [word] (reduce elem-max (:values word)
+                                    (filter some? (map (partial match-pattern word) patterns))))
+        matches        (match-patterns (get-word word-str))
+        long-enough?   (partial <= 2)]
+    ((fn [result chunk-len m w]
+      (if (empty? w)
+        (apply str result)
+        (let [w-rest     (rest w)
+              add-hyphen (and (odd? (first m)) (long-enough? chunk-len) (long-enough? (count w-rest)))]
+          (recur
+            (conj (if add-hyphen (conj result hyphen) result) (first w))
+            (if add-hyphen 1 (inc chunk-len))
+            (rest m)
+            w-rest))))
+     [] 0 matches word-str)))
+
 ;(map (partial hyphenate-word \-)      ["algorithm" "example"])
 ;(map (partial hyphenate-word "&shy;") ["algorithm" "example"])
 
@@ -58,10 +72,13 @@
 
 (defn hyphenate [sentence & {:keys [hyphen] :or {hyphen \-}}]
   "Given a sentence, partition it into words hand hyphenate them individually"
-  (let [join  (partial str/join "")
-        words (map join (partition-by (partial contains? pattern-chars) sentence))]
-    (join (map-indexed #(if (even? %1) (hyphenate-word hyphen %2) %2) words))))
+  (let [hyphenator        (partial hyphenate-word hyphen)
+        join              (partial str/join "")
+        first-contains    (contains? pattern-chars (first sentence)) ; We must check whether words are at odd or even indexes
+        words             (map join (partition-by (partial contains? pattern-chars) sentence))
+        should-hyphenate? #(= (even? %) first-contains)]
+    (join (map-indexed #(if (should-hyphenate? %1) (hyphenator %2) %2) words))))
 ;(hyphenate "Text hyphenation begins by splitting the string into chunks using sequences of non-alphabetical characters as delimiters")
 ;(hyphenate "hyphenation" :hyphen "&shy;")
 
-(defn -main [& argv] (doall (map #(println (hyphenate %)) argv)))
+(defn -main [& argv] (doall (map #(println (hyphenate % :hyphen \-)) argv)))
