@@ -13,8 +13,9 @@
                                                   (doall (map parser lines))
                                                   (doall lines))))))
 
-(defn elem-max "Element-wise maximum of two vectors"
-  [vec1 vec2] (vec (map #(max %1 %2) vec1 vec2)))
+(defn elem-max "Element-wise maximum of two or more vectors"
+  ([vecs] (reduce elem-max vecs))
+  ([vec1 vec2] (vec (map #(max %1 %2) vec1 vec2))))
 
 (defn get-word "Prefix and postfix the word with underscore, also allocate :values for record keeping"
   [w] {:str (str "_" w "_") :values (vec (concat [10] (repeat (count w) 0) [10]))})
@@ -42,23 +43,25 @@
             (recur (+ idx-of pattern-len) (elem-max result (create-values result idx-of))))))
      0 (:values word))))
 
-(defn hyphenate-word [word-str]
+(defn hyphenate-word [hyphen word-str]
   "Given a word, iterate over all patterns and accumulate the maximum vec value. Then add hyphens where the value is odd"
   (let [match-patterns (fn [word] (reduce elem-max (:values word) (filter some? (map (partial match-pattern word) patterns))))
         matches        (match-patterns (get-word word-str))]
-    (apply str (flatten (map #(if (odd? %1) [\- %2] %2) matches word-str)))))
-;(map hyphenate-word ["algorithm" "example"])
+    (apply str (flatten (map #(if (odd? %1) [hyphen %2] %2) matches word-str)))))
+;(map (partial hyphenate-word \-)      ["algorithm" "example"])
+;(map (partial hyphenate-word "&shy;") ["algorithm" "example"])
 
 ; Find which characters (upper and lowercase) occur in sequences, excluding the underscore
 (let [lower-chars (-> (into #{} (flatten (map #(seq (:str %)) patterns))) (disj \_))
       upper-str   (str/upper-case (apply str lower-chars))]
   (def pattern-chars (set/union lower-chars (into #{} upper-str))))
 
-(defn hyphenate [sentence]
+(defn hyphenate [sentence & {:keys [hyphen] :or {hyphen \-}}]
   "Given a sentence, partition it into words hand hyphenate them individually"
   (let [join  (partial str/join "")
         words (map join (partition-by (partial contains? pattern-chars) sentence))]
-    (join (map-indexed #(if (even? %1) (hyphenate-word %2) %2) words))))
+    (join (map-indexed #(if (even? %1) (hyphenate-word hyphen %2) %2) words))))
 ;(hyphenate "Text hyphenation begins by splitting the string into chunks using sequences of non-alphabetical characters as delimiters")
+;(hyphenate "hyphenation" :hyphen "&shy;")
 
 (defn -main [& argv] (doall (map #(println (hyphenate %)) argv)))
