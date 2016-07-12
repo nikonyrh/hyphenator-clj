@@ -70,15 +70,31 @@
       upper-str   (str/upper-case (apply str lower-chars))]
   (def pattern-chars (set/union lower-chars (into #{} upper-str))))
 
+
+(defn count-chars [char-str word-str]
+  "For each character in char-str, return the number of occurances in word-str"
+  (let [freq (frequencies word-str)] (reduce #(assoc %1 %2 (get freq %2 0)) {} char-str)))
+
+
 (defn hyphenate [sentence & {:keys [hyphen] :or {hyphen \-}}]
   "Given a sentence, partition it into words hand hyphenate them individually"
   (let [hyphenator        (partial hyphenate-word hyphen)
         join              (partial str/join "")
-        first-contains    (contains? pattern-chars (first sentence)) ; We must check whether words are at odd or even indexes
+       ; Partition into chunks of "word letters" (a-z A-Z) and the rest
         words             (map join (partition-by (partial contains? pattern-chars) sentence))
-        should-hyphenate? #(= (even? %) first-contains)]
-    (join (map-indexed #(if (should-hyphenate? %1) (hyphenator %2) %2) words))))
+        ; We must check whether words are at odd or even indexes
+        word-idx?         (if (contains? pattern-chars (first sentence)) even? odd?)
+        ; The difference between "open" and "close" HTML markings in a word
+        tag-balance       (fn [counts] (- (counts \<) (counts \>)))
+        ; The accumulated number of open and closed brackets
+        tag-balances      (vec (reductions + (map #(tag-balance (count-chars "<>" %)) words)))
+        ; No open HTML tags and we are at a word index
+        should-hyphenate? (fn [word-idx] (and (= 0 (tag-balances word-idx))
+                                              (word-idx? word-idx)))]
+    (join (map-indexed #(if (should-hyphenate? %1) (hyphenate-word hyphen %2) %2) words))))
+
 ;(hyphenate "Text hyphenation begins by splitting the string into chunks using sequences of non-alphabetical characters as delimiters")
+;(hyphenate "<hyphenated hyphenated style='hyphenated'>hyphenated<hyphenated/>")
 ;(hyphenate "hyphenation" :hyphen "&shy;")
 
 (defn -main [& argv] (doall (map #(println (hyphenate % :hyphen \-)) argv)))
