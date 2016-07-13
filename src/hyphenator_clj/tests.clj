@@ -15,7 +15,7 @@
 (my-deftest test-hyphenate hyphenate
   "!Text hyphenation"                                 "!Text hy-phen-ation"
   "begins by splitting!"                              "be-gins by split-ting!"
-  ;TODO: "not &hyphenated; samples"                   "not &hyphenated; sam-ples"
+  "not &hyphenated; samples"                          "not &hyphenated; sam-ples"
   "<hyphenated hyphenated style='hyphenated'>hyphenated<hyphenated/>"
   "<hyphenated hyphenated style='hyphenated'>hy-phen-ated<hyphenated/>") 
 

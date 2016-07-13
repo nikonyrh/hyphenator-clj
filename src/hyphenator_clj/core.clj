@@ -15,7 +15,7 @@
 
 (defn elem-max "Element-wise maximum of two or more vectors"
   ([vecs] (reduce elem-max vecs))
-  ([vec1 vec2] (vec (map #(max %1 %2) vec1 vec2))))
+  ([vec1 vec2] (mapv max vec1 vec2)))
 
 (defn get-word "Prefix and postfix the word with underscore, also allocate :values for record keeping"
   [w] {:str (str "_" w "_") :values (vec (concat [10] (repeat (count w) 0) [10]))})
@@ -81,20 +81,24 @@
   (let [hyphenator        (partial hyphenate-word hyphen)
         join              (partial str/join "")
        ; Partition into chunks of "word letters" (a-z A-Z) and the rest
-        words             (map join (partition-by (partial contains? pattern-chars) sentence))
+        words             (mapv join (partition-by (partial contains? pattern-chars) sentence))
         ; We must check whether words are at odd or even indexes
         word-idx?         (if (contains? pattern-chars (first sentence)) even? odd?)
         ; The difference between "open" and "close" HTML markings in a word
         tag-balance       (fn [counts] (- (counts \<) (counts \>)))
         ; The accumulated number of open and closed brackets
         tag-balances      (vec (reductions + (map #(tag-balance (count-chars "<>" %)) words)))
-        ; No open HTML tags and we are at a word index
+        ; No open HTML tags, we are at a word index, not in &escaped;
         should-hyphenate? (fn [word-idx] (and (= 0 (tag-balances word-idx))
-                                              (word-idx? word-idx)))]
+                                              (word-idx? word-idx)
+                                              (not (and (> word-idx 0)
+                                                        (< word-idx (count words))
+                                                        (= \& (last  (words (dec word-idx))))
+                                                        (= \; (first (words (inc word-idx))))))))]
     (join (map-indexed #(if (should-hyphenate? %1) (hyphenate-word hyphen %2) %2) words))))
 
 ;(hyphenate "Text hyphenation begins by splitting the string into chunks using sequences of non-alphabetical characters as delimiters")
-;(hyphenate "<hyphenated hyphenated style='hyphenated'>hyphenated<hyphenated/>")
+;(hyphenate "<hyphenated hyphenated style='hyphenated'>hyphenated &hyphenated;<hyphenated/>")
 ;(hyphenate "hyphenation" :hyphen "&shy;")
 
 (defn -main [& argv] (doall (map #(println (hyphenate % :hyphen \-)) argv)))
