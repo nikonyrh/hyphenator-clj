@@ -1,4 +1,6 @@
-(ns hyphenator-clj.core (:gen-class) (:use clojure.test))
+(ns hyphenator-clj.core
+  (:use clojure.test)
+  (:gen-class))
 
 (defmacro my-are     [fun & args]           `(are [inp exp] (= (~fun inp) exp) ~@args))
 (defmacro my-deftest [test-name fun & args] `(deftest ~test-name (my-are ~fun ~@args)))
