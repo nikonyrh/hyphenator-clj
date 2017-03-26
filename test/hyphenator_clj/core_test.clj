@@ -1,6 +1,6 @@
-(ns hyphenator-clj.core
-  (:use clojure.test)
-  (:gen-class))
+(ns hyphenator-clj.core-test
+  (:require [clojure.test :refer :all]
+            [hyphenator-clj.core :refer :all]))
 
 (defmacro my-are     [fun & args]           `(are [inp exp] (= (~fun inp) exp) ~@args))
 (defmacro my-deftest [test-name fun & args] `(deftest ~test-name (my-are ~fun ~@args)))
@@ -21,4 +21,4 @@
   "<hyphenated hyphenated style='hyphenated'>hyphenated<hyphenated/>"
   "<hyphenated hyphenated style='hyphenated'>hy-phen-ated<hyphenated/>") 
 
-(run-tests)
+; (run-tests)

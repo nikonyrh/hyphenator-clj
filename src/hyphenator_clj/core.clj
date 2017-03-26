@@ -8,7 +8,7 @@
 
 (defn read-file "Read a file with optional line-specific parser"
   ([fname]        (read-file nil fname))
-  ([parser fname] (with-open [rdr (io/reader fname)]
+  ([parser fname] (with-open [rdr (-> fname io/resource io/reader)]
                     (->> rdr line-seq (map (or parser identity)) doall))))
 
 (defn elem-max "Element-wise maximum of two or more vectors"
@@ -30,8 +30,9 @@
                               :digits (apply merge (map-indexed to-digit (:digits groups)))}))]
   (def patterns (->> "english.txt" (read-file to-strs) (filter (partial :digits)))))
 
-(defn match-pattern [word pattern]
+(defn match-pattern
   "Given a word an a pattern, checks on which indexes the pattern is found (if any), returns values vec or nil"
+  [word pattern]
   (let [word-str      (str/lower-case (:str word))
         pattern-str   (:str pattern)
         pattern-len   (count pattern-str)
@@ -41,9 +42,10 @@
          (if (neg? idx-of) (if (some pos? result) result nil)
            (recur (+ idx-of pattern-len) (elem-max result (create-values result idx-of))))))))
 
-(defn hyphenate-word [hyphen word-str]
+(defn hyphenate-word
   "Given a word, iterate over all patterns and accumulate the maximum vec value.
    Then add hyphens where the value is odd and strings are long enough."
+  [hyphen word-str]
   (let [match-patterns (fn [word] (->> patterns
                                     (map (partial match-pattern word))
                                     (filter some?)
@@ -70,13 +72,15 @@
   (def pattern-chars (set (concat lower-chars upper-str))))
 
 
-(defn count-chars [char-str word-str]
+(defn count-chars
   "For each character in char-str, return the number of occurances in word-str"
+  [char-str word-str]
   (let [freq (frequencies word-str)] (->> (for [char char-str] [char (get freq char 0)]) (into {}))))
 
 
-(defn hyphenate [sentence & {:keys [hyphen] :or {hyphen \-}}]
+(defn hyphenate
   "Given a sentence, partition it into words hand hyphenate them individually"
+  [sentence & {:keys [hyphen] :or {hyphen \-}}]
   (let [hyphenator        (partial hyphenate-word hyphen)
         join              (partial str/join "")
        ; Partition into chunks of "word letters" (a-z A-Z) and the rest
@@ -93,12 +97,12 @@
                                               (not (and (> word-idx 0)
                                                         (< word-idx (count words))
                                                         (= \& (last  (words (dec word-idx))))
-                                                        (= \; (first (words (inc word-idx))))))))]
-    (->> words (map-indexed #(if (should-hyphenate? %1) (hyphenate-word hyphen %2) %2)) join)))
+                                                        (= \; (first (words (inc word-idx))))))))
+        hyphenate        #(if (should-hyphenate? %1) (hyphenate-word hyphen %2) %2)]
+    (->> words (map-indexed hyphenate) join)))
 
 ;(hyphenate "Text hyphenation begins by splitting the string into chunks using sequences of non-alphabetical characters as delimiters")
 ;(hyphenate "<hyphenated hyphenated style='hyphenated'>hyphenated &hyphenated;<hyphenated/>")
 ;(hyphenate "hyphenation" :hyphen "&shy;")
 
-(defn -main [& argv] (doall (for [arg argv]
-                              (println (hyphenate arg :hyphen \-)))))
+(defn -main [& argv] (doseq [arg argv] (println (hyphenate arg :hyphen \-))))
