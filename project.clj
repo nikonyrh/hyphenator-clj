@@ -1,4 +1,4 @@
-(defproject org.clojars.nikonyrh.hyphenator-clj "0.1.0"
+(defproject org.clojars.nikonyrh.hyphenator-clj "0.1.1"
   :description "Text hyphenation algorithm"
   :url         "https://github.com/nikonyrh/hyphenator-clj"
   :license {:name "Apache License, Version 2.0"
