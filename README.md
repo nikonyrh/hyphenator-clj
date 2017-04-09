@@ -1,7 +1,10 @@
 # Hyphenator-clj
 
-A re-implementation of a hyphenation algorithm I originally implemented in [PHP](https://github.com/nikonyrh/hyphenator-php/).
-Just started learning the language a few days ago before I started writing this so it might be a mess.
+A re-implementation of a hyphenation algorithm I originally did in [PHP](https://github.com/nikonyrh/hyphenator-php/). Available at [Clojars](https://clojars.org/org.clojars.nikonyrh.hyphenator-clj):
 
-I'll try to make this a general-purpose library but I don't know how to do that yet. Meanwhile you can try
-feeding it command-line arguments and see its output. Rules for excluding too short tokens aren't implemented yet.
+    [org.clojars.nikonyrh.hyphenator-clj "0.1.1"]
+
+Usage:
+
+    (ns example.core (:require [hyphenator-clj.core :as h]))
+    (defn -main [& argv] (doseq [arg argv] (println (h/hyphenate arg :hyphen \-))))
